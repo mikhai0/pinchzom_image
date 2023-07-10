@@ -1,7 +1,7 @@
 {
   "name": "pinchzoom_image",
   "description": "zoom image with gesture",
-  "version": "1.1.6",
+  "version": "1.1.12",
   "author": "mikhai0",
   "license": "MIT",
   "keywords": [
@@ -9,7 +9,7 @@
     "pinch",
     "zoom"
   ],
-  "main": "dist/index.js",
+  "main": "dist/index.min.js",
   "repository": "https://github.com/mikhai0/pinch_zom",
   "devDependencies": {
   },
