@@ -1,9 +1,12 @@
 {
   "name": "pinchzoom_image",
   "description": "zoom image with gesture",
-  "version": "1.1.12",
+  "version": "1.1.16",
   "author": "mikhai0",
   "license": "MIT",
+  "scripts": {
+    "build": "uglifyjs ./src/index.js --mangle --output ./dist/index.min.js  --compress --mangle-props reserved=\"[handleDoubleTap,destroy,enable,reset]\"",
+  },
   "keywords": [
     "pinchzoom",
     "pinch",
