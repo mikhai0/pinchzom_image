@@ -5,7 +5,7 @@
   "author": "mikhai0",
   "license": "MIT",
   "scripts": {
-    "build": "uglifyjs ./src/index.js --mangle --output ./dist/index.min.js  --compress --mangle-props reserved=\"[handleDoubleTap,destroy,enable,reset]\"",
+    "build": "uglifyjs ./src/index.js --mangle --output ./dist/index.min.js  --compress --mangle-props reserved='[handleDoubleTap,destroy,enable,reset]'"
   },
   "keywords": [
     "pinchzoom",
