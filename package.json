@@ -1,11 +1,11 @@
 {
   "name": "pinchzoom_image",
   "description": "zoom image with gesture",
-  "version": "1.1.16",
+  "version": "1.1.26",
   "author": "mikhai0",
   "license": "MIT",
   "scripts": {
-    "build": "uglifyjs ./src/index.js --mangle --output ./dist/index.min.js  --compress --mangle-props reserved='[handleDoubleTap,destroy,enable,reset]'"
+    "build": "uglifyjs ./src/index.js --mangle --output ./dist/index.min.js"
   },
   "keywords": [
     "pinchzoom",
@@ -14,9 +14,11 @@
   ],
   "main": "dist/index.min.js",
   "repository": "https://github.com/mikhai0/pinch_zom",
-  "devDependencies": {
-  },
+  "devDependencies": {},
   "files": [
     "dist"
-  ]
+  ],
+  "dependencies": {
+    "uglify-js": "^3.17.4"
+  }
 }

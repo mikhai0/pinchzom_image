@@ -1,17 +1,38 @@
 /*
+
     PinchZoom.js
+    Copyright (c) Manuel Stofer 2013 - today
+
+    Author: Manuel Stofer (mst@rtp.ch)
+    Version: 2.3.5
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+
 */
 
 // polyfills
 if (typeof Object.assign != 'function') {
   // Must be writable: true, enumerable: false, configurable: true
-  Object.defineProperty(Object, 'assign', {
-    // eslint-disable-next-line no-unused-vars
-    value: function assign(target, varArgs) {
-      // .length of function is 2
-      if (target == null) {
-        // TypeError if undefined or null
-        throw new TypeError('null to object');
+  Object.defineProperty(Object, "assign", {
+    value: function assign(target, varArgs) { // .length of function is 2
+      if (target == null) { // TypeError if undefined or null
+        throw new TypeError('Cannot convert undefined or null to object');
       }
 
       var to = Object(target);
@@ -19,8 +40,7 @@ if (typeof Object.assign != 'function') {
       for (var index = 1; index < arguments.length; index++) {
         var nextSource = arguments[index];
 
-        if (nextSource != null) {
-          // Skip over if undefined or null
+        if (nextSource != null) { // Skip over if undefined or null
           for (var nextKey in nextSource) {
             // Avoid bugs when hasOwnProperty is shadowed
             if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
@@ -32,7 +52,7 @@ if (typeof Object.assign != 'function') {
       return to;
     },
     writable: true,
-    configurable: true,
+    configurable: true
   });
 }
 
@@ -43,20 +63,21 @@ if (typeof Array.from != 'function') {
 }
 
 // utils
-var buildElement = function (str) {
+var buildElement = function(str) {
   // empty string as title argument required by IE and Edge
   var tmp = document.implementation.createHTMLDocument('');
   tmp.body.innerHTML = str;
   return Array.from(tmp.body.children)[0];
 };
 
-var triggerEvent = function (el, name) {
+var triggerEvent = function(el, name) {
   var event = document.createEvent('HTMLEvents');
   event.initEvent(name, true, false);
   el.dispatchEvent(event);
 };
 
 var definePinchZoom = function () {
+
   /**
    * Pinch zoom
    * @param el
@@ -64,40 +85,41 @@ var definePinchZoom = function () {
    * @constructor
    */
   var PinchZoom = function (el, options) {
-      this.el = el;
-      this.zoomFactor = 1;
-      this.lastScale = 1;
-      this.offset = {
-        x: 0,
-        y: 0,
-      };
-      this.initialOffset = {
-        x: 0,
-        y: 0,
-      };
-      this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      this.options = Object.assign({}, this.defaults, options);
-      this.setupMarkup();
-      this.bindEvents();
-      this.update();
+        this.el = el;
+        this.zoomFactor = 1;
+        this.lastScale = 1;
+        this.offset = {
+          x: 0,
+          y: 0
+        };
+        this.initialOffset = {
+          x: 0,
+          y: 0,
+        };
+        this.options = Object.assign({}, this.defaults, options);
+        this.setupMarkup();
+        this.bindEvents();
+        this.update();
 
-      // The image may already be loaded when PinchZoom is initialized,
-      // and then the load event (which trigger update) will never fire.
-      if (this.isImageLoaded(this.el)) {
-        this.updateAspectRatio();
-        this.setupOffsets();
-      }
+        // The image may already be loaded when PinchZoom is initialized,
+        // and then the load event (which trigger update) will never fire.
+        if (this.isImageLoaded(this.el)) {
+          this.updateAspectRatio();
+          this.setupOffsets();
+        }
 
-      this.enable();
-    },
-    sum = function (a, b) {
-      return a + b;
-    },
-    isCloseTo = function (value, expected) {
-      return value > expected - 0.01 && value < expected + 0.01;
-    };
+        this.enable();
+
+      },
+      sum = function (a, b) {
+        return a + b;
+      },
+      isCloseTo = function (value, expected) {
+        return value > expected - 0.01 && value < expected + 0.01;
+      };
 
   PinchZoom.prototype = {
+
     defaults: {
       tapZoomFactor: 2,
       zoomOutFactor: 1.3,
@@ -109,6 +131,7 @@ var definePinchZoom = function () {
       setOffsetsOnce: false,
       use2d: true,
       useMouseWheel: false,
+      useDoubleTap: true,
       zoomStartEventName: 'pz_zoomstart',
       zoomUpdateEventName: 'pz_zoomupdate',
       zoomEndEventName: 'pz_zoomend',
@@ -127,6 +150,8 @@ var definePinchZoom = function () {
       onDragUpdate: null,
       onDoubleTap: null,
       onMouseWheel: null,
+      containerPos: 'relative',
+      zoomPos: 'absolute'
     },
 
     /**
@@ -135,8 +160,8 @@ var definePinchZoom = function () {
      */
     handleDragStart: function (event) {
       triggerEvent(this.el, this.options.dragStartEventName);
-      if (typeof this.options.onDragStart == 'function') {
-        this.options.onDragStart(this, event);
+      if(typeof this.options.onDragStart == "function"){
+        this.options.onDragStart(this, event)
       }
       this.stopAnimation();
       this.lastDragPosition = false;
@@ -149,10 +174,7 @@ var definePinchZoom = function () {
      * @param event
      */
     handleDrag: function (event) {
-      if (event.type === 'touchend') {
-        return;
-      }
-      var touch = event.type === 'touchmove' ? this.getTouches(event)[0] : this.getPointer(event);
+      var touch = event.type === "touchmove" ? this.getTouches(event)[0] : this.getPointer(event);
       this.drag(touch, this.lastDragPosition);
       this.offset = this.sanitizeOffset(this.offset);
       this.lastDragPosition = touch;
@@ -160,8 +182,8 @@ var definePinchZoom = function () {
 
     handleDragEnd: function () {
       triggerEvent(this.el, this.options.dragEndEventName);
-      if (typeof this.options.onDragEnd == 'function') {
-        this.options.onDragEnd(this, event);
+      if(typeof this.options.onDragEnd == "function"){
+        this.options.onDragEnd(this, event)
       }
       this.end();
     },
@@ -172,8 +194,8 @@ var definePinchZoom = function () {
      */
     handleZoomStart: function (event) {
       triggerEvent(this.el, this.options.zoomStartEventName);
-      if (typeof this.options.onZoomStart == 'function') {
-        this.options.onZoomStart(this, event);
+      if(typeof this.options.onZoomStart == "function"){
+        this.options.onZoomStart(this, event)
       }
       this.stopAnimation();
       this.lastScale = 1;
@@ -189,12 +211,13 @@ var definePinchZoom = function () {
     handleZoom: function (event, newScale) {
       // a relative scale factor is used
       var touchCenter = this.getTouchCenter(this.getTouches(event)),
-        scale = newScale / this.lastScale;
+          scale = newScale / this.lastScale;
       this.lastScale = newScale;
 
       // the first touch events are thrown away since they are not precise
       this.nthZoom += 1;
       if (this.nthZoom > 3) {
+
         this.scale(scale, touchCenter);
         this.drag(touchCenter, this.lastZoomCenter);
       }
@@ -203,8 +226,8 @@ var definePinchZoom = function () {
 
     handleZoomEnd: function () {
       triggerEvent(this.el, this.options.zoomEndEventName);
-      if (typeof this.options.onZoomEnd == 'function') {
-        this.options.onZoomEnd(this, event);
+      if(typeof this.options.onZoomEnd == "function"){
+        this.options.onZoomEnd(this, event)
       }
       this.end();
     },
@@ -215,11 +238,12 @@ var definePinchZoom = function () {
      */
     handleDoubleTap: function (event) {
       var center = this.getTouches(event)[0],
-        zoomFactor = this.zoomFactor > 1 ? 1 : this.options.tapZoomFactor,
-        startZoomFactor = this.zoomFactor,
-        updateProgress = function (progress) {
-          this.scaleTo(startZoomFactor + progress * (zoomFactor - startZoomFactor), center);
-        }.bind(this);
+          zoomFactor = this.zoomFactor > 1 ? 1 : this.options.tapZoomFactor,
+          startZoomFactor = this.zoomFactor,
+          updateProgress = (function (progress) {
+            this.scaleTo(startZoomFactor + progress * (zoomFactor - startZoomFactor), center);
+          }).bind(this);
+
       if (this.hasInteraction) {
         return;
       }
@@ -232,8 +256,31 @@ var definePinchZoom = function () {
 
       this.animate(this.options.animationDuration, updateProgress, this.swing);
       triggerEvent(this.el, this.options.doubleTapEventName);
-      if (typeof this.options.onDoubleTap == 'function') {
-        this.options.onDoubleTap(this, event);
+      if(typeof this.options.onDoubleTap == "function"){
+        this.options.onDoubleTap(this, event)
+      }
+    },
+
+    /**
+     * Event handler for 'mousewheel'
+     * @param event
+     */
+    handleMouseWheel: function (event) {
+      var center = this.getPointer(event),
+          newScale = Math.min(
+              Math.max(this.options.minZoom, this.lastScale + event.deltaY * -0.01),
+              this.options.maxZoom
+          ),
+          scale = newScale / this.lastScale;
+
+      this.scale(scale, center);
+
+      this.lastScale = newScale;
+      this.update()
+
+      triggerEvent(this.el, this.options.mouseWheelEventName);
+      if (typeof this.options.onMouseWheel == "function") {
+        this.options.onMouseWheel(this, event);
       }
     },
 
@@ -244,21 +291,15 @@ var definePinchZoom = function () {
      */
     computeInitialOffset: function () {
       this.initialOffset = {
-        x:
-          -Math.abs(
-            this.el.offsetWidth * this.getInitialZoomFactor() - this.container.offsetWidth
-          ) / 2,
-        y:
-          -Math.abs(
-            this.el.offsetHeight * this.getInitialZoomFactor() - this.container.offsetHeight
-          ) / 2,
+        x: -Math.abs(this.el.offsetWidth * this.getInitialZoomFactor() - this.container.offsetWidth) / 2,
+        y: -Math.abs(this.el.offsetHeight * this.getInitialZoomFactor() - this.container.offsetHeight) / 2,
       };
     },
 
     /**
      * Reset current image offset to that of the initial offset
      */
-    resetOffset: function () {
+    resetOffset: function() {
       this.offset.x = this.initialOffset.x;
       this.offset.y = this.initialOffset.y;
     },
@@ -274,7 +315,7 @@ var definePinchZoom = function () {
       }
     },
 
-    setupOffsets: function () {
+    setupOffsets: function() {
       if (this.options.setOffsetsOnce && this._isOffsetsSet) {
         return;
       }
@@ -294,15 +335,15 @@ var definePinchZoom = function () {
       var elWidth = this.el.offsetWidth * this.getInitialZoomFactor() * this.zoomFactor;
       var elHeight = this.el.offsetHeight * this.getInitialZoomFactor() * this.zoomFactor;
       var maxX = elWidth - this.getContainerX() + this.options.horizontalPadding,
-        maxY = elHeight - this.getContainerY() + this.options.verticalPadding,
-        maxOffsetX = Math.max(maxX, 0),
-        maxOffsetY = Math.max(maxY, 0),
-        minOffsetX = Math.min(maxX, 0) - this.options.horizontalPadding,
-        minOffsetY = Math.min(maxY, 0) - this.options.verticalPadding;
+          maxY = elHeight -  this.getContainerY() + this.options.verticalPadding,
+          maxOffsetX = Math.max(maxX, 0),
+          maxOffsetY = Math.max(maxY, 0),
+          minOffsetX = Math.min(maxX, 0) - this.options.horizontalPadding,
+          minOffsetY = Math.min(maxY, 0) - this.options.verticalPadding;
 
       return {
         x: Math.min(Math.max(offset.x, minOffsetX), maxOffsetX),
-        y: Math.min(Math.max(offset.y, minOffsetY), maxOffsetY),
+        y: Math.min(Math.max(offset.y, minOffsetY), maxOffsetY)
       };
     },
 
@@ -322,14 +363,13 @@ var definePinchZoom = function () {
      */
     scale: function (scale, center) {
       scale = this.scaleZoomFactor(scale);
-      const aaa = {
+      this.addOffset({
         x: (scale - 1) * (center.x + this.offset.x),
-        y: (scale - 1) * (center.y + this.offset.y),
-      };
-      this.addOffset(aaa);
+        y: (scale - 1) * (center.y + this.offset.y)
+      });
       triggerEvent(this.el, this.options.zoomUpdateEventName);
-      if (typeof this.options.onZoomUpdate == 'function') {
-        this.options.onZoomUpdate(this, event);
+      if(typeof this.options.onZoomUpdate == "function"){
+        this.options.onZoomUpdate(this, event)
       }
     },
 
@@ -341,10 +381,7 @@ var definePinchZoom = function () {
     scaleZoomFactor: function (scale) {
       var originalZoomFactor = this.zoomFactor;
       this.zoomFactor *= scale;
-      this.zoomFactor = Math.min(
-        this.options.maxZoom,
-        Math.max(this.zoomFactor, this.options.minZoom)
-      );
+      this.zoomFactor = Math.min(this.options.maxZoom, Math.max(this.zoomFactor, this.options.minZoom));
       return this.zoomFactor / originalZoomFactor;
     },
 
@@ -367,28 +404,30 @@ var definePinchZoom = function () {
      */
     drag: function (center, lastCenter) {
       if (lastCenter) {
-        if (this.options.lockDragAxis) {
+        if(this.options.lockDragAxis) {
           // lock scroll to position that was changed the most
-          if (Math.abs(center.x - lastCenter.x) > Math.abs(center.y - lastCenter.y)) {
+          if(Math.abs(center.x - lastCenter.x) > Math.abs(center.y - lastCenter.y)) {
             this.addOffset({
               x: -(center.x - lastCenter.x),
-              y: 0,
-            });
-          } else {
-            this.addOffset({
-              y: -(center.y - lastCenter.y),
-              x: 0,
+              y: 0
             });
           }
-        } else {
+          else {
+            this.addOffset({
+              y: -(center.y - lastCenter.y),
+              x: 0
+            });
+          }
+        }
+        else {
           this.addOffset({
             y: -(center.y - lastCenter.y),
-            x: -(center.x - lastCenter.x),
+            x: -(center.x - lastCenter.x)
           });
         }
         triggerEvent(this.el, this.options.dragUpdateEventName);
-        if (typeof this.options.onDragUpdate == 'function') {
-          this.options.onDragUpdate(this, event);
+        if(typeof this.options.onDragUpdate == "function"){
+          this.options.onDragUpdate(this, event)
         }
       }
     },
@@ -407,18 +446,8 @@ var definePinchZoom = function () {
      */
     getVectorAvg: function (vectors) {
       return {
-        x:
-          vectors
-            .map(function (v) {
-              return v.x;
-            })
-            .reduce(sum) / vectors.length,
-        y:
-          vectors
-            .map(function (v) {
-              return v.y;
-            })
-            .reduce(sum) / vectors.length,
+        x: vectors.map(function (v) { return v.x; }).reduce(sum) / vectors.length,
+        y: vectors.map(function (v) { return v.y; }).reduce(sum) / vectors.length
       };
     },
 
@@ -430,7 +459,7 @@ var definePinchZoom = function () {
     addOffset: function (offset) {
       this.offset = {
         x: this.offset.x + offset.x,
-        y: this.offset.y + offset.y,
+        y: this.offset.y + offset.y
       };
     },
 
@@ -449,7 +478,8 @@ var definePinchZoom = function () {
      */
     isInsaneOffset: function (offset) {
       var sanitizedOffset = this.sanitizeOffset(offset);
-      return sanitizedOffset.x !== offset.x || sanitizedOffset.y !== offset.y;
+      return sanitizedOffset.x !== offset.x ||
+          sanitizedOffset.y !== offset.y;
     },
 
     /**
@@ -457,17 +487,21 @@ var definePinchZoom = function () {
      */
     sanitizeOffsetAnimation: function () {
       var targetOffset = this.sanitizeOffset(this.offset),
-        startOffset = {
-          x: this.offset.x,
-          y: this.offset.y,
-        },
-        updateProgress = function (progress) {
-          this.offset.x = startOffset.x + progress * (targetOffset.x - startOffset.x);
-          this.offset.y = startOffset.y + progress * (targetOffset.y - startOffset.y);
-          this.update();
-        }.bind(this);
+          startOffset = {
+            x: this.offset.x,
+            y: this.offset.y
+          },
+          updateProgress = (function (progress) {
+            this.offset.x = startOffset.x + progress * (targetOffset.x - startOffset.x);
+            this.offset.y = startOffset.y + progress * (targetOffset.y - startOffset.y);
+            this.update();
+          }).bind(this);
 
-      this.animate(this.options.animationDuration, updateProgress, this.swing);
+      this.animate(
+          this.options.animationDuration,
+          updateProgress,
+          this.swing
+      );
     },
 
     /**
@@ -480,13 +514,17 @@ var definePinchZoom = function () {
       }
 
       var startZoomFactor = this.zoomFactor,
-        zoomFactor = 1,
-        center = this.getCurrentZoomCenter(),
-        updateProgress = function (progress) {
-          this.scaleTo(startZoomFactor + progress * (zoomFactor - startZoomFactor), center);
-        }.bind(this);
+          zoomFactor = 1,
+          center = this.getCurrentZoomCenter(),
+          updateProgress = (function (progress) {
+            this.scaleTo(startZoomFactor + progress * (zoomFactor - startZoomFactor), center);
+          }).bind(this);
 
-      this.animate(this.options.animationDuration, updateProgress, this.swing);
+      this.animate(
+          this.options.animationDuration,
+          updateProgress,
+          this.swing
+      );
     },
 
     /**
@@ -533,7 +571,7 @@ var definePinchZoom = function () {
 
       return {
         x: centerX,
-        y: centerY,
+        y: centerY
       };
     },
 
@@ -548,7 +586,7 @@ var definePinchZoom = function () {
       var scrollLeft = document.documentElement.scrollLeft || document.body.scrollLeft;
       var posTop = rect.top + scrollTop;
       var posLeft = rect.left + scrollLeft;
-      if (!event.touches) {
+      if (event.type === 'mouseup' || event.type === 'click') {
         return [
           {
             x: event.pageX - posLeft,
@@ -593,29 +631,27 @@ var definePinchZoom = function () {
      */
     animate: function (duration, framefn, timefn, callback) {
       var startTime = new Date().getTime(),
-        renderFrame = function () {
-          if (!this.inAnimation) {
-            return;
-          }
-          var frameTime = new Date().getTime() - startTime,
-            progress = frameTime / duration;
-          if (frameTime >= duration) {
-            framefn(1);
-            if (callback) {
-              callback();
+          renderFrame = (function () {
+            if (!this.inAnimation) { return; }
+            var frameTime = new Date().getTime() - startTime,
+                progress = frameTime / duration;
+            if (frameTime >= duration) {
+              framefn(1);
+              if (callback) {
+                callback();
+              }
+              this.update();
+              this.stopAnimation();
+              this.update();
+            } else {
+              if (timefn) {
+                progress = timefn(progress);
+              }
+              framefn(progress);
+              this.update();
+              requestAnimationFrame(renderFrame);
             }
-            this.update();
-            this.stopAnimation();
-            this.update();
-          } else {
-            if (timefn) {
-              progress = timefn(progress);
-            }
-            framefn(progress);
-            this.update();
-            requestAnimationFrame(renderFrame);
-          }
-        }.bind(this);
+          }).bind(this);
       this.inAnimation = true;
       requestAnimationFrame(renderFrame);
     },
@@ -633,7 +669,7 @@ var definePinchZoom = function () {
      * @return {Number}
      */
     swing: function (p) {
-      return -Math.cos(p * Math.PI) / 2 + 0.5;
+      return -Math.cos(p * Math.PI) / 2  + 0.5;
     },
 
     getContainerX: function () {
@@ -645,7 +681,7 @@ var definePinchZoom = function () {
     },
 
     setContainerY: function (y) {
-      return (this.container.style.height = y + 'px');
+      return this.container.style.height = y + 'px';
     },
 
     unsetContainerY: function () {
@@ -656,15 +692,12 @@ var definePinchZoom = function () {
      * Creates the expected html structure
      */
     setupMarkup: function () {
-      this.container = document.querySelector('div.pinch-zoom-container');
-      if (!this.container) {
-        this.container = buildElement('<div class="pinch-zoom-container"></div>');
-        this.el.parentNode.insertBefore(this.container, this.el);
-        this.container.appendChild(this.el);
-      }
+      this.container = buildElement('<div class="pinch-zoom-container"></div>');
+      this.el.parentNode.insertBefore(this.container, this.el);
+      this.container.appendChild(this.el);
 
-      this.container.style.overflow = 'auto';
-      this.container.style.position = 'relative';
+      this.container.style.overflow = 'hidden';
+      this.container.style.position = this.options.containerPos;
 
       this.el.style.webkitTransformOrigin = '0% 0%';
       this.el.style.mozTransformOrigin = '0% 0%';
@@ -672,7 +705,7 @@ var definePinchZoom = function () {
       this.el.style.oTransformOrigin = '0% 0%';
       this.el.style.transformOrigin = '0% 0%';
 
-      this.el.style.position = 'absolute';
+      this.el.style.position = this.options.zoomPos;
       this.el.style.backfaceVisibility = 'hidden';
       this.el.style.willChange = 'transform';
     },
@@ -688,11 +721,11 @@ var definePinchZoom = function () {
      */
     bindEvents: function () {
       var self = this;
-      detectGestures(this.container, this, this.el);
+      detectGestures(this.container, this);
 
-      this.resizeHandler = this.update.bind(this);
+      this.resizeHandler = this.update.bind(this)
       window.addEventListener('resize', this.resizeHandler);
-      Array.from(this.el.querySelectorAll('img')).forEach(function (imgEl) {
+      Array.from(this.el.querySelectorAll('img')).forEach(function(imgEl) {
         imgEl.addEventListener('load', self.update.bind(self));
       });
 
@@ -720,90 +753,69 @@ var definePinchZoom = function () {
       }
       this.updatePlanned = true;
 
-      window.setTimeout(
-        function () {
-          this.updatePlanned = false;
+      window.setTimeout((function () {
+        this.updatePlanned = false;
 
-          var zoomFactor = this.getInitialZoomFactor() * this.zoomFactor,
+        var zoomFactor = this.getInitialZoomFactor() * this.zoomFactor,
             offsetX = -this.offset.x / zoomFactor,
             offsetY = -this.offset.y / zoomFactor,
-            transform3d =
-              'scale3d(' +
-              zoomFactor +
-              ', ' +
-              zoomFactor +
-              ',1) ' +
-              'translate3d(' +
-              offsetX +
-              'px,' +
-              offsetY +
-              'px,0px)',
-            transform2d =
-              'scale(' +
-              zoomFactor +
-              ', ' +
-              zoomFactor +
-              ') ' +
-              'translate(' +
-              offsetX +
-              'px,' +
-              offsetY +
-              'px)',
-            removeClone = function () {
+            transform3d =   'scale3d('     + zoomFactor + ', '  + zoomFactor + ',1) ' +
+                'translate3d(' + offsetX    + 'px,' + offsetY    + 'px,0px)',
+            transform2d =   'scale('       + zoomFactor + ', '  + zoomFactor + ') ' +
+                'translate('   + offsetX    + 'px,' + offsetY    + 'px)',
+            removeClone = (function () {
               if (this.clone) {
                 this.clone.parentNode.removeChild(this.clone);
                 delete this.clone;
               }
-            }.bind(this);
+            }).bind(this);
 
-          // Scale 3d and translate3d are faster (at least on ios)
-          // but they also reduce the quality.
-          // PinchZoom uses the 3d transformations during interactions
-          // after interactions it falls back to 2d transformations
-          if (!this.options.use2d || this.hasInteraction || this.inAnimation) {
-            this.is3d = true;
-            removeClone();
+        // Scale 3d and translate3d are faster (at least on ios)
+        // but they also reduce the quality.
+        // PinchZoom uses the 3d transformations during interactions
+        // after interactions it falls back to 2d transformations
+        if (!this.options.use2d || this.hasInteraction || this.inAnimation) {
+          this.is3d = true;
+          removeClone();
 
-            this.el.style.webkitTransform = transform3d;
-            this.el.style.mozTransform = transform2d;
-            this.el.style.msTransform = transform2d;
-            this.el.style.oTransform = transform2d;
-            this.el.style.transform = transform3d;
-          } else {
-            // When changing from 3d to 2d transform webkit has some glitches.
-            // To avoid this, a copy of the 3d transformed element is displayed in the
-            // foreground while the element is converted from 3d to 2d transform
-            if (this.is3d) {
-              this.clone = this.el.cloneNode(true);
-              this.clone.style.pointerEvents = 'none';
-              this.container.appendChild(this.clone);
-              window.setTimeout(removeClone, 200);
-            }
-
-            this.el.style.webkitTransform = transform2d;
-            this.el.style.mozTransform = transform2d;
-            this.el.style.msTransform = transform2d;
-            this.el.style.oTransform = transform2d;
-            this.el.style.transform = transform2d;
-
-            this.is3d = false;
+          this.el.style.webkitTransform = transform3d;
+          this.el.style.mozTransform = transform2d;
+          this.el.style.msTransform = transform2d;
+          this.el.style.oTransform = transform2d;
+          this.el.style.transform = transform3d;
+        } else {
+          // When changing from 3d to 2d transform webkit has some glitches.
+          // To avoid this, a copy of the 3d transformed element is displayed in the
+          // foreground while the element is converted from 3d to 2d transform
+          if (this.is3d) {
+            this.clone = this.el.cloneNode(true);
+            this.clone.style.pointerEvents = 'none';
+            this.container.appendChild(this.clone);
+            window.setTimeout(removeClone, 200);
           }
-        }.bind(this),
-        0
-      );
+
+          this.el.style.webkitTransform = transform2d;
+          this.el.style.mozTransform = transform2d;
+          this.el.style.msTransform = transform2d;
+          this.el.style.oTransform = transform2d;
+          this.el.style.transform = transform2d;
+
+          this.is3d = false;
+        }
+      }).bind(this), 0);
     },
 
     /**
      * Enables event handling for gestures
      */
-    enable: function () {
+    enable: function() {
       this.enabled = true;
     },
 
     /**
      * Disables event handling for gestures
      */
-    disable: function () {
+    disable: function() {
       this.enabled = false;
     },
 
@@ -817,243 +829,197 @@ var definePinchZoom = function () {
         this.container.remove();
         this.container = null;
       }
-    },
+    }
 
-    reset: function () {
-      this.zoomFactor = 1;
-      this.lastScale = 1;
-      this.offset = {
-        x: 0,
-        y: 0,
-      };
-      this.initialOffset = {
-        x: 0,
-        y: 0,
-      };
-      this.setupMarkup();
-      this.bindEvents();
-      this.update();
-
-      // The image may already be loaded when PinchZoom is initialized,
-      // and then the load event (which trigger update) will never fire.
-      if (this.isImageLoaded(this.el)) {
-        this.updateAspectRatio();
-        this.setupOffsets();
-      }
-
-      this.enable();
-    },
   };
 
-  var detectGestures = function (el, target, childEl) {
+  var detectGestures = function (el, target) {
     var interaction = null,
-      fingers = 0,
-      lastTouchStart = null,
-      startTouches = null,
-      isDragging = false,
-      setInteraction = function (newInteraction, event) {
-        if (interaction !== newInteraction) {
-          if (interaction && !newInteraction) {
-            switch (interaction) {
+        fingers = 0,
+        lastTouchStart = null,
+        startTouches = null,
+
+        setInteraction = function (newInteraction, event) {
+          if (interaction !== newInteraction) {
+
+            if (interaction && !newInteraction) {
+              switch (interaction) {
+                case "zoom":
+                  target.handleZoomEnd(event);
+                  break;
+                case 'drag':
+                  target.handleDragEnd(event);
+                  break;
+              }
+            }
+
+            switch (newInteraction) {
               case 'zoom':
+                target.handleZoomStart(event);
+                break;
+              case 'drag':
+                target.handleDragStart(event);
+                break;
+            }
+          }
+          interaction = newInteraction;
+        },
+
+        updateInteraction = function (event) {
+          if (fingers === 2) {
+            setInteraction('zoom');
+          } else if (fingers === 1 && target.canDrag()) {
+            setInteraction('drag', event);
+          } else {
+            setInteraction(null, event);
+          }
+        },
+
+        targetTouches = function (touches) {
+          return Array.from(touches).map(function (touch) {
+            return {
+              x: touch.pageX,
+              y: touch.pageY
+            };
+          });
+        },
+
+        getDistance = function (a, b) {
+          var x, y;
+          x = a.x - b.x;
+          y = a.y - b.y;
+          return Math.sqrt(x * x + y * y);
+        },
+
+        calculateScale = function (startTouches, endTouches) {
+          var startDistance = getDistance(startTouches[0], startTouches[1]),
+              endDistance = getDistance(endTouches[0], endTouches[1]);
+          return endDistance / startDistance;
+        },
+
+        cancelEvent = function (event) {
+          event.stopPropagation();
+          event.preventDefault();
+        },
+
+        detectDoubleTap = function (event) {
+          var time = (new Date()).getTime();
+
+          if (fingers > 1) {
+            lastTouchStart = null;
+          }
+
+          if (time - lastTouchStart < 300) {
+            cancelEvent(event);
+
+            target.handleDoubleTap(event);
+            switch (interaction) {
+              case "zoom":
                 target.handleZoomEnd(event);
                 break;
               case 'drag':
                 target.handleDragEnd(event);
                 break;
             }
+          } else {
+            target.isDoubleTap = false;
           }
 
-          switch (newInteraction) {
-            case 'zoom':
-              target.handleZoomStart(event);
-              break;
-            case 'drag':
-              target.handleDragStart(event);
-              break;
+          if (fingers === 1) {
+            lastTouchStart = time;
           }
-        }
-        interaction = newInteraction;
-      },
-      updateInteraction = function (event) {
-        if (fingers === 2) {
-          setInteraction('zoom');
-        } else if (fingers === 1 && target.canDrag()) {
-          setInteraction('drag', event);
-        } else {
-          setInteraction(null, event);
-        }
-      },
-      targetTouches = function (touches) {
-        return Array.from(touches).map(function (touch) {
-          return {
-            x: touch.pageX,
-            y: touch.pageY,
-          };
-        });
-      },
-      getDistance = function (a, b) {
-        var x, y;
-        x = a.x - b.x;
-        y = a.y - b.y;
-        return Math.sqrt(x * x + y * y);
-      },
-      calculateScale = function (startTouches, endTouches) {
-        var startDistance = getDistance(startTouches[0], startTouches[1]),
-          endDistance = getDistance(endTouches[0], endTouches[1]);
-        return endDistance / startDistance;
-      },
-      cancelEvent = function (event) {
-        event.stopPropagation();
-        event.preventDefault();
-      },
-      detectDoubleTap = function (event) {
-        var time = new Date().getTime();
-        if (fingers > 1) {
-          lastTouchStart = null;
-        }
+        },
+        firstMove = true;
 
-        if (time - lastTouchStart < 300) {
-          cancelEvent(event);
+    el.addEventListener('touchstart', function (event) {
+      if(target.enabled) {
+        firstMove = true;
+        fingers = event.touches.length;
 
-          target.handleDoubleTap(event);
-          switch (interaction) {
-            case 'zoom':
-              target.handleZoomEnd(event);
-              break;
-            case 'drag':
-              target.handleDragEnd(event);
-              break;
-          }
-        } else {
-          target.isDoubleTap = false;
-        }
-
-        if (fingers === 1) {
-          lastTouchStart = time;
-        }
-      },
-      handleClickOnDesktop = function (event) {
-        cancelEvent(event);
-
-        target.handleDoubleTap(event);
-      },
-      firstMove = true;
-
-    el.addEventListener(
-      'touchstart',
-      function (event) {
-        if (target.enabled) {
-          firstMove = true;
-          fingers = event.touches.length;
+        if (target.options.useDoubleTap) {
           detectDoubleTap(event);
         }
-      },
-      { passive: false }
-    );
+      }
+    }, { passive: false });
 
-    childEl.addEventListener(
-      'click',
-      function (event) {
-        if (target.enabled && !isDragging && !target.isMobile) {
-          handleClickOnDesktop(event);
+    el.addEventListener('touchmove', function (event) {
+      if(target.enabled && !target.isDoubleTap) {
+        if (firstMove) {
+          updateInteraction(event);
+          if (interaction) {
+            cancelEvent(event);
+          }
+          startTouches = targetTouches(event.touches);
+        } else {
+          switch (interaction) {
+            case 'zoom':
+              if (startTouches.length == 2 && event.touches.length == 2) {
+                target.handleZoom(event, calculateScale(startTouches, targetTouches(event.touches)));
+              }
+              break;
+            case 'drag':
+              target.handleDrag(event);
+              break;
+          }
+          if (interaction) {
+            cancelEvent(event);
+            target.update();
+          }
         }
-      },
-      { passive: false }
-    );
 
-    el.addEventListener(
-      'touchmove',
-      function (event) {
-        if (target.enabled && !target.isDoubleTap) {
+        firstMove = false;
+      }
+    }, { passive: false });
+
+    el.addEventListener('touchend', function (event) {
+      if(target.enabled) {
+        fingers = event.touches.length;
+        updateInteraction(event);
+      }
+    });
+
+    if(target.options.useMouseWheel) {
+
+      el.addEventListener("mousewheel", function (event) {
+        if (target.enabled) {
+          cancelEvent(event);
+          target.handleMouseWheel(event);
+        }
+      });
+
+      el.addEventListener("mousedown", function (event) {
+        if(target.enabled) {
+          firstMove = true;
+          fingers = 1;
+        }
+      }, { passive: true });
+
+      el.addEventListener('mousemove', function (event) {
+        if(target.enabled) {
           if (firstMove) {
             updateInteraction(event);
             if (interaction) {
               cancelEvent(event);
             }
-            startTouches = targetTouches(event.touches);
           } else {
-            switch (interaction) {
-              case 'zoom':
-                if (startTouches.length == 2 && event.touches.length == 2) {
-                  target.handleZoom(
-                    event,
-                    calculateScale(startTouches, targetTouches(event.touches))
-                  );
-                }
-                break;
-              case 'drag':
-                target.handleDrag(event);
-                break;
+            if (interaction === "drag") {
+              target.handleDrag(event);
             }
             if (interaction) {
               cancelEvent(event);
               target.update();
             }
           }
-
           firstMove = false;
         }
-      },
-      { passive: false }
-    );
+      }, { passive: false });
 
-    el.addEventListener('touchend', function (event) {
-      if (target.enabled) {
-        fingers = event.touches.length;
-        updateInteraction(event);
-      }
-    });
-
-    if (target.options.useMouseWheel) {
-      childEl.addEventListener(
-        'mousedown',
-        // eslint-disable-next-line no-unused-vars
-        function (event) {
-          if (target.enabled) {
-            firstMove = true;
-            fingers = 1;
-            isDragging = false;
-          }
-        },
-        { passive: true }
-      );
-
-      childEl.addEventListener(
-        'mousemove',
-        function (event) {
-          if (target.enabled) {
-            if (firstMove) {
-              updateInteraction(event);
-              if (interaction) {
-                cancelEvent(event);
-              }
-            } else {
-              if (interaction === 'drag') {
-                isDragging = true;
-                target.handleDrag(event);
-              }
-              if (interaction) {
-                cancelEvent(event);
-                target.update();
-              }
-            }
-            firstMove = false;
-          }
-        },
-        { passive: false }
-      );
-
-      childEl.addEventListener(
-        'mouseup',
-        function (event) {
-          if (target.enabled) {
-            fingers = 0;
-            updateInteraction(event);
-          }
-        },
-        { passive: true }
-      );
+      el.addEventListener("mouseup", function (event) {
+        if(target.enabled) {
+          fingers = 0;
+          updateInteraction(event);
+        }
+      }, { passive: true });
     }
   };
 
